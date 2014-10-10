@@ -13,4 +13,39 @@ blkdiscard: offset 1 is not aligned
 blkdiscard: offset 511 is not aligned
 Discarded 5242880 bytes from the offset 512
 Discarded 5242880 bytes from the offset 1024
+testing aligned steps full device
+Discarded 5242880 bytes from the offset 0
+Discarded 5242880 bytes from the offset 5242880
+Discarded 1310720 bytes from the offset 0
+Discarded 1310720 bytes from the offset 1310720
+Discarded 1310720 bytes from the offset 2621440
+Discarded 1310720 bytes from the offset 3932160
+Discarded 1310720 bytes from the offset 5242880
+Discarded 1310720 bytes from the offset 6553600
+Discarded 1310720 bytes from the offset 7864320
+Discarded 1310720 bytes from the offset 9175040
+testing aligned steps with offsets and length
+Discarded 512 bytes from the offset 0
+Discarded 512 bytes from the offset 512
+blkdiscard: offset 1 is not aligned
+blkdiscard: offset 1 is not aligned
+blkdiscard: offset 511 is not aligned
+Discarded 512 bytes from the offset 512
+Discarded 512 bytes from the offset 1024
+Discarded 512 bytes from the offset 1536
+Discarded 512 bytes from the offset 1024
+Discarded 512 bytes from the offset 1536
+testing misaligned steps full device
+blkdiscard: length 1 is not aligned
+blkdiscard: length 256 is not aligned
+blkdiscard: length 511 is not aligned
+blkdiscard: length 513 is not aligned
+blkdiscard: length 768 is not aligned
+testing misaligned steps with offsets and length
+blkdiscard: length 511 is not aligned
+blkdiscard: offset 1 is not aligned
+blkdiscard: offset 511 is not aligned
+blkdiscard: length 511 is not aligned
+blkdiscard: offset 1 is not aligned
+blkdiscard: offset 511 is not aligned
 detach loop device from image

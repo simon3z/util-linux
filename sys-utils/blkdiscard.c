@@ -57,6 +57,7 @@ static void __attribute__((__noreturn__)) usage(FILE *out)
 	fputs(USAGE_OPTIONS, out);
 	fputs(_(" -o, --offset <num>  offset in bytes to discard from\n"
 		" -l, --length <num>  length of bytes to discard from the offset\n"
+		" -p, --step <num>    size of the discard iterations within the offset\n"
 		" -s, --secure        perform secure discard\n"
 		" -v, --verbose       print aligned length and offset\n"),
 		out);
@@ -71,7 +72,7 @@ int main(int argc, char **argv)
 {
 	char *path;
 	int c, fd, verbose = 0, secure = 0, secsize;
-	uint64_t end, blksize, range[2];
+	uint64_t end, blksize, range[2], step = 0;
 	struct stat sb;
 
 	static const struct option longopts[] = {
@@ -79,6 +80,7 @@ int main(int argc, char **argv)
 	    { "version",   0, 0, 'V' },
 	    { "offset",    1, 0, 'o' },
 	    { "length",    1, 0, 'l' },
+	    { "step",      1, 0, 'p' },
 	    { "secure",    0, 0, 's' },
 	    { "verbose",   0, 0, 'v' },
 	    { NULL,        0, 0, 0 }
@@ -92,7 +94,7 @@ int main(int argc, char **argv)
 	range[0] = 0;
 	range[1] = ULLONG_MAX;
 
-	while ((c = getopt_long(argc, argv, "hVsvo:l:", longopts, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "hVsvo:l:p:", longopts, NULL)) != -1) {
 		switch(c) {
 		case 'h':
 			usage(stdout);
@@ -107,6 +109,10 @@ int main(int argc, char **argv)
 		case 'o':
 			range[0] = strtosize_or_err(optarg,
 					_("failed to parse offset"));
+			break;
+		case 'p':
+			step = strtosize_or_err(optarg,
+					_("failed to parse step"));
 			break;
 		case 's':
 			secure = 1;
@@ -153,25 +159,32 @@ int main(int argc, char **argv)
 		errx(EXIT_FAILURE, _("%s: offset is greater than device size"), path);
 	end = range[0] + range[1];
 	if (end < range[0] || end > blksize)
-		range[1] = blksize - range[0];
+		end = blksize;
+
+	range[1] = (step > 0) ? step : end - range[0];
 
 	/* check length alignment to the sector size */
 	if (range[1] % secsize)
 		errx(EXIT_FAILURE, _("%s: length %" PRIu64 " is not aligned"), path, range[1]);
 
-	if (secure) {
-		if (ioctl(fd, BLKSECDISCARD, &range))
-			err(EXIT_FAILURE, _("%s: BLKSECDISCARD ioctl failed"), path);
-	} else {
-		if (ioctl(fd, BLKDISCARD, &range))
-			err(EXIT_FAILURE, _("%s: BLKDISCARD ioctl failed"), path);
-	}
+	for (; range[0] < end; range[0] += range[1]) {
+		if (range[0] + range[1] > end)
+			range[1] = end - range[0];
 
-	if (verbose)
-		/* TRANSLATORS: The standard value here is a very large number. */
-		printf(_("%s: Discarded %" PRIu64 " bytes from the "
-			 "offset %" PRIu64"\n"), path,
-			 (uint64_t) range[1], (uint64_t) range[0]);
+		if (secure) {
+			if (ioctl(fd, BLKSECDISCARD, &range))
+				err(EXIT_FAILURE, _("%s: BLKSECDISCARD ioctl failed"), path);
+		} else {
+			if (ioctl(fd, BLKDISCARD, &range))
+				err(EXIT_FAILURE, _("%s: BLKDISCARD ioctl failed"), path);
+		}
+
+		if (verbose)
+			/* TRANSLATORS: The standard value here is a very large number. */
+			printf(_("%s: Discarded %" PRIu64 " bytes from the "
+				 "offset %" PRIu64"\n"), path,
+				 (uint64_t) range[1], (uint64_t) range[0]);
+	}
 
 	close(fd);
 	return EXIT_SUCCESS;
